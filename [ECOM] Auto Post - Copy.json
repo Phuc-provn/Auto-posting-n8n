@@ -1,0 +1,2688 @@
+{
+  "name": "[ECOM] Auto Post",
+  "nodes": [
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-dev",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "<API_KEY>"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "inputs",
+              "value": "=An image of {{ $json.output.description }}, with a dominant color palette of {{ $json.output.color }}, realistic art style, soft lighting, and detailed textures."
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "id": "b8d87998-bce3-4541-86e0-24bd292d52c6",
+      "name": "Call hugginface inference api1",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        -1440,
+        3376
+      ],
+      "notesInFlow": true,
+      "typeVersion": 4.2,
+      "onError": "continueErrorOutput",
+      "notes": " "
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "post-gen-ecom",
+        "authentication": "basicAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -2416,
+        4464
+      ],
+      "id": "dd65d725-8ac8-479f-8dcb-7644f0147b68",
+      "name": "Webhook1",
+      "webhookId": "4fc0ae5e-c5bc-44fa-855e-89d9450cd91c",
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "LW1l5RaGg1spdbS4",
+          "name": "N8N Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are a masterpiece Vietnamese marketing blog writter. When custom fields are empty, you must generate them.\nReturn ONLY JSON:\n{\n  \"description\": \"...\",        // if provided, reuse, else generate (60-80 words)\n  \"paragraphs\": [              // length = {{ $json.query.number_of_headings }}\n    { \"heading\": \"...\", \"body\": \"...\" },\n    ...\n  ],\n  \"cta\": \"...\",                // if provided, reuse else generate (40-60 words) + fixed CTA block at end\n  \"hashtags\": [\"#...\", \"#...\", \"#...\"]  // 8-15 tags, no markdown\n}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=Title: {{ $json.query.post_title }}\nIndustries: {{ $json.query.related_industries || \"General\" }}\nCustom:\n- description: {{ $json.query.custom_description }}\n- cta: {{ $json.query.custom_cta }}\n- number_of_headings: {{number_of_headings}}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        -2080,
+        3248
+      ],
+      "id": "66553fda-1c47-48b6-832a-d5a9adb351da",
+      "name": "Blog Generator"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-pro-exp",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -1664,
+        3504
+      ],
+      "id": "77e60302-090c-41d5-811c-a6ff787a0eb5",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "GFrdGoorQgj2PKlc",
+          "name": "Google AI Studio API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Blog title: {{ $('Webhook1').item.json.query.post_title }}\n\nInstructions:\n- Analyze the blog title provided.\n\n- Write a short, attractive introductory (~10 words) to start the pain section.\n- List 5–6 common pains that businesses are facing in relation to the blog title.\n    - Each pain must be written in one line with the following format:\n        1. A short headline (~10 words)\n        2. A concise description explaining why it is a real pain or what it causes (~50 words).\n    - Combine both the headline and description into one single string in each object, like this:\n      \"Headline: Description of the pain\"\n      \n- Write a short, attractive introductory (~10 words) to start the solution section (can start with \"Giải pháp từ Draco: ...\").\n- List 5–6 solutions or benefits that this ERP system can solve for each pain.\n    - Each solution must be written in one line with the following format:\n        1. A short headline (~10 words)\n        2. A concise description explaining how the ERP system solves the pain point or brings value (~35 words).\n    - Combine both the headline and description into one single string in each object, like this:\n      \"Headline: Description of the solution\"\n\n- Write a promotive attractive conclusion (~30 words) to end both sections pain and solution with a module in ERP system promotion.\n\n- Output ONLY in Vietnamese and return the following JSON object with two arrays for pains and solutions and two introductory lines:\n  ```json\n  {\n    \"pain_introductory\": \"Introduction for pain section\",\n    \"pains\": [\n      \"Pain headline: Pain description\"\n    ],\n    \"solution_introductory\": \"Giải pháp từ Draco: Introduction for solution section\",\n    \"solutions\": [\n      \"Solution headline: Solution description\"\n    ],\n    {\"conclusion\"}\n  }\n",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are a senior B2B marketing copywriter specializing in ERP software for Draco Fintech Joint Stock Company."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        -1824,
+        4464
+      ],
+      "id": "47404f8e-dbe6-47b0-83f4-fe965af99151",
+      "name": "Pain & Solution Generator"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -1824,
+        4672
+      ],
+      "id": "c05af873-8f32-4914-83fe-efcd591d08ef",
+      "name": "Google Gemini Chat Model2",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "GFrdGoorQgj2PKlc",
+          "name": "Google AI Studio API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Lấy output thô từ node trước đó\nlet raw_blog_title = $('Webhook1').first().json.query.post_title;\nlet rawOutput =  $input.first().json.output || '';\n\n// Loại bỏ các backticks, newline, và markdown\nrawOutput = rawOutput.replace(/```json|\\n|```/g, '').trim();\n\n// Parse chuỗi JSON thành đối tượng\nlet parsedData = {};\ntry {\n  parsedData = JSON.parse(rawOutput);\n} catch (e) {\n  // Nếu có lỗi khi parse, trả về đối tượng rỗng để xử lý\n  parsedData = {\n    pains: [],\n    solutions: []\n  };\n}\n\n// Thêm prefix icon vào mỗi dòng của pains và solutions\nlet painsWithIcon = parsedData.pains.map(pain => \"❌ \" + pain);\nlet solutionsWithIcon = parsedData.solutions.map(solution => \"✅ \" + solution);\nlet conclusionWithIcon = \"👉 \" + parsedData.conclusion ;\n\n// Trả về output đúng format với icon thêm vào\nreturn [\n  {\n    json: {\n      pain_introductory: parsedData.pain_introductory,\n      pains: painsWithIcon,\n      solution_introductory: parsedData.solution_introductory,\n      solutions: solutionsWithIcon,\n      conclusion: conclusionWithIcon\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1424,
+        4464
+      ],
+      "id": "df3ff611-010f-4e3e-99c4-b5987ccd9286",
+      "name": "Extract All Blog Parts"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Lấy dữ liệu từ input JSON (một bài viết ví dụ)\nlet blogData = $json;\n\n// Lấy phần introductory, pains, solutions và conclusion\nlet painIntro = blogData.pain_introductory || '';\nlet pains = blogData.pains || [];\nlet solutionIntro = blogData.solution_introductory || '';\nlet solutions = blogData.solutions || [];\nlet conclusion = blogData.conclusion || '';\nlet cta =  $('Webhook1').first().json.query.custom_cta || `\nTrải nghiệm miễn phí và nhận hỗ trợ 1-1 ngay hôm nay!\n📌 Thông tin 9 gói basic miễn phí: https://draerp.vn/9-goi-draerp-basic/\n📌 Thông tin 10 gói doanh nghiệp miễn phí: https://draerp.vn/10-goi-draerp-doanh-nghiep/\n📌 Đăng ký dùng thử miễn phí: https://bit.ly/dang-ky-su-dung-mien-phi\n-----------------------------------\n🌏 Email: business@draco.biz\n📞 SĐT: +84 33 885 5353\n🌏 Website: draerp.vn\n🌏 Instagram: @fintechdraco | LinkedIn: fintech draco corporation\n🌏 TikTok: @fintechdracocorporation | YouTube: @fintechdracodraerp\n`\n\n// Gộp các phần vào một bài blog hoàn chỉnh\nlet blogContent = `${painIntro}\\n`;\n\npains.forEach(pain => {\n  blogContent += `${pain}\\n`;  // Thêm từng dòng pain\n});\n\nblogContent += `${solutionIntro}\\n`;\n\nsolutions.forEach(solution => {\n  blogContent += `${solution}\\n`;  // Thêm từng dòng solution\n});\n\nblogContent += `${conclusion}\\n`;// Thêm phần kết luận\n\nblogContent += `${cta} \\n`\n\n// Trả về bài blog hoàn chỉnh dưới dạng JSON\nreturn [\n  {\n    json: {\n      full_blog: blogContent.trim()  // Loại bỏ khoảng trắng dư thừa\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1184,
+        4464
+      ],
+      "id": "ac53425f-fee5-4723-8235-2bf0dd742818",
+      "name": "Combine into a blog"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -656,
+        4544
+      ],
+      "id": "61f13b2a-ff0b-41d7-9022-439d176814c1",
+      "name": "Google Gemini Chat Model20",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "GFrdGoorQgj2PKlc",
+          "name": "Google AI Studio API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "ba441cb9-5c51-4f0c-b410-099249dde11f",
+              "leftValue": "={{ $('Webhook1').first().json.query.custom_hashtags }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "empty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -864,
+        4640
+      ],
+      "id": "2da9d083-5fb4-4e7f-8b26-6452108186b6",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Given the following blog post:\n\n- Title: {{ $('Webhook1').first().json.query.post_title }}\n- Content: {{ $json.full_blog }}\n\nCreate 10–15 relevant hashtags in both Vietnamese and English to be used on Facebook, strictly based on the blog post's content.\n\nEach hashtag must:\n- Be relevant to the topic.\n- Be written in lowercase or PascalCase.\n- Have no spaces, no punctuation, no diacritics in English (use standard English spelling).\n- In Vietnamese, write in lowercase without space and ensure correct spelling.\n- Use standard hashtag format (prefix with #), one word or compound word only.\n- Avoid duplicates, special characters, misspellings, or incorrect word splits.\n\n⚠️ IMPORTANT:\n- Output ONLY a **pure JSON array** of hashtags, e.g.:\n  [\"#erp\", \"#quảnlýkho\", \"#processautomation\", \"#dracoerp\"]\n- DO NOT return markdown, backticks, explanations, or additional characters.\n- The output must be a valid JSON array with double quotes and no trailing commas or whitespace.",
+        "hasOutputParser": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=You are a social media and SEO optimization expert. Your task is to analyze the provided blog post content and generate a concise list of high-performing hashtags in both Vietnamese and English for Facebook. Output only a JSON array of hashtags."
+            }
+          ]
+        }
+      },
+      "id": "0b333b4a-882d-4170-9208-0e9c99814231",
+      "name": "FB Hashtags Generator1",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "position": [
+        -640,
+        4368
+      ],
+      "typeVersion": 1.5
+    },
+    {
+      "parameters": {
+        "jsCode": "let raw = $input.first().json.text || '';\n\n// Xóa code block markdown và xuống dòng đầu/cuối\nraw = raw.replace(/```json|```/g, '').trim();\n\n// Xóa tất cả các dòng trống đầu/cuối (nếu có)\nraw = raw.replace(/^\\s+|\\s+$/g, '');\n\n// Nếu còn ký tự \\n thừa, loại bỏ luôn\nraw = raw.replace(/\\n/g, '');\n\n// Parse ra mảng\nlet hashtags = [];\ntry {\n  hashtags = JSON.parse(raw);\n} catch(e) {\n  hashtags = [];\n}\n\n// Đảm bảo mỗi hashtag đều bắt đầu bằng #\nhashtags = hashtags.map(tag => {\n  tag = tag.trim();\n  return tag.startsWith('#') ? tag : '#' + tag.replace(/^#+/, ''); // loại bỏ # thừa nếu có, sau đó thêm 1 #\n});\n\n// Ghép thành 1 dòng, mỗi hashtag cách nhau bởi dấu cách\nlet hashtags_line = hashtags.join(' ');\n\nreturn [\n  {\n    json: {\n      hashtags_line: hashtags_line\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -256,
+        4368
+      ],
+      "id": "529d0366-908d-4c4c-bfec-e93d9e1249bf",
+      "name": "Cleare Hashtags Markdown1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3977da0a-82e0-468a-8b0e-f1b560629b78",
+              "name": "hashtags_line",
+              "value": "={{ $json.hashtags_line || $('Webhook1').first().json.query.custom_hashtags }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -64,
+        4672
+      ],
+      "id": "ab881dfb-aed4-489e-a982-ad80b1f04209",
+      "name": "Set Hashtags1"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "docType": "Auto%20Social%20Post%20AI",
+        "documentName": "={{ $('Webhook1').first().json.query.doc_name }}",
+        "properties": {
+          "customProperty": [
+            {
+              "field": "plain_text",
+              "value": "={{ $('Webhook1').first().json.query.post_title }}\n-----------------------------------\n{{ $('Combine into a blog').first().json.full_blog }}\n\n{{ $('Set Hashtags1').first().json.hashtags_line }}"
+            },
+            {
+              "field": "start_time",
+              "value": "={{ $('Get Start Time').first().json.startTime }}"
+            },
+            {
+              "field": "end_time",
+              "value": "={{ $('Get End Time').first().json.endTime }}"
+            },
+            {
+              "field": "plain_text_instagram",
+              "value": "={{ $('Webhook1').first().json.query.post_title }} \n----------------------------------- \n{{ $('Combine into a blog IG').first().json.full_blog }}  \n{{ $('Set Hashtags1').first().json.hashtags_line }}"
+            },
+            {
+              "field": "plain_text_linkedin",
+              "value": "={{ $('Webhook1').first().json.query.post_title }} \n----------------------------------- \n{{ $('Combine into a blog LI').first().json.full_blog }}  \n{{ $('Set Hashtags1').first().json.hashtags_line }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.erpNext",
+      "typeVersion": 1,
+      "position": [
+        2368,
+        4656
+      ],
+      "id": "e77416f2-bd90-4550-a901-05221ddb24e8",
+      "name": "Update FB Blog Infomations",
+      "credentials": {
+        "erpNextApi": {
+          "id": "ctPTNIfLDkF3Ninx",
+          "name": "Ecom API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -880,
+        3440
+      ],
+      "id": "066c913e-ea01-4e4e-88ba-ccf650c80e91",
+      "name": "Google Gemini Chat Model17",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "GFrdGoorQgj2PKlc",
+          "name": "Google AI Studio API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n\t\"type\": \"object\",\n\t\"properties\": {\n\t\t\"text_1\": {\n\t\t\t\"type\": \"string\",\n\t\t\t\"description\": \"Tiêu đề chính của bài viết, tối đa 10 từ\"\n\t\t},\n\t\t\"text_2\": {\n\t\t\t\"type\": \"string\",\n\t\t\t\"description\": \"Tiêu đề phụ của bài viết, tối đa 15 từ\"\n\t\t},\n\t\t\"text_3\": {\n\t\t\t\"type\": \"string\",\n\t\t\t\"description\": \"Ý chính ngắn gọn của bài viết, tối đa 8 từ\"\n\t\t},\n         \"text_3_1\": {\n\t\t\t\"type\": \"string\",\n\t\t\t\"description\": \"Ý phụ dòng 1, tối đa 10 từ, có icon phù hợp đầu dòng\"\n\t\t},\n        \"text_3_2\": {\n\t\t\t\"type\": \"string\",\n\t\t\t\"description\": \"Ý phụ dòng 2, tối đa 10 từ, có icon phù hợp đầu dòng\"\n\t\t},\n        \"text_3_3\": {\n\t\t\t\"type\": \"string\",\n\t\t\t\"description\": \"Ý phụ dòng 3, tối đa 10 từ, có icon phù hợp đầu dòng\"\n        }\n\t}\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        -576,
+        3440
+      ],
+      "id": "b9317123-aad6-4559-bbee-b5c478dcba31",
+      "name": "Structured Output Parser5"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://rest.apitemplate.io/v2/create-image",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "template_id",
+              "value": "c0d77b23946d3ce2"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "x-api-key",
+              "value": "eae0MjU5MjM6MjMwNzY6QjVrMktSUzd4c2JyNFVPZQ="
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"overrides\": [\n    {\n      \"name\": \"text_1\",\n      \"text\": \"{{ $json.output.text_1 }}\"\n    },\n    {\n      \"name\": \"text_2\",\n      \"text\": \"{{ $json.output.text_2 }}\"\n    },\n    {\n      \"name\": \"text_3\",\n      \"text\": \"{{ $json.output.text_3 }}\"\n    },\n    {\n      \"name\": \"text_3_1\",\n      \"text\": \"{{ $json.output.text_3_1 }}\"\n    },\n    {\n      \"name\": \"text_3_2\",\n      \"text\": \"{{ $json.output.text_3_2 }}\"\n    },\n    {\n      \"name\": \"text_3_3\",\n      \"text\": \"{{ $json.output.text_3_3 }}\"\n    }\n  ]\n} ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -384,
+        3200
+      ],
+      "id": "56af968d-64df-4628-9373-18bf21fa1d90",
+      "name": "APITemplate Call"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Dựa vào nội dung bài viết ở định dạng HTML này: {{ $('Wordpress Post Writer').item.json.text }}, hãy đọc, phân tích sau đó trích xuất những phần sau để ghi lên hình ảnh của bài viết:\n\n- text_1: Tiêu đề chính của bài viết (ngắn gọn, thu hút, tối đa 10 từ)\n- text_2: Tiêu đề phụ của bài viết (hấp dẫn, làm rõ lợi ích, tối đa 15 từ)\n- text_3: Ý chính ngắn gọn của bài viết (tóm tắt bài viết súc tích, tối đa 8 từ) \n- text_3_1: Ý phụ dòng 1 (ý phụ từ ý chính, tối đa 12 từ, có icon phù hợp đầu dòng)\n- text_3_2: Ý phụ dòng 2 (ý phụ từ ý chính, tối đa 12 từ, có icon phù hợp đầu dòng)  \n- text_3_3: Ý phụ dòng 3 (ý phụ từ ý chính, tối đa 12 từ, có icon phù hợp đầu dòng) \n\nĐịnh dạng JSON output (trả về đúng theo mẫu này, không thêm bất kỳ nội dung nào khác):\n{\n  \"text_1\": \"Tiêu đề chính ngắn gọn\",\n  \"text_2\": \"Tiêu đề phụ thu hút\",\n  \"text_3\": \"Ý chính ngắn gọn của bài viết\",\n  \"text_3_1\": \"Ý phụ\" dòng 1\",\n  \"text_3_2\": \"Ý phụ dòng 2\",\n  \"text_3_3\": \"Ý phụ dòng 3\"\n}\n\nLưu ý:\n- Output là text thuần, bỏ định dạng HTML\n- Không có lời giải thích, không có phần giới thiệu giữa bạn và tôi.\n- Nội dung phải thu hút, hấp dẫn, giúp banner nổi bật.\n- Viết theo ngữ cảnh quảng cáo",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        -816,
+        3200
+      ],
+      "id": "a453ee41-0165-40a4-a8ee-f8a4ce88f828",
+      "name": "Banner Text Generator"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.download_url_png }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -144,
+        3200
+      ],
+      "id": "cc79fc5c-3f71-4eae-98f0-2556350ebf9d",
+      "name": "Download image"
+    },
+    {
+      "parameters": {
+        "options": {
+          "prompt": "Instructions:\n--------------\n{instructions}\n--------------\nCompletion:\n--------------\n{completion}\n--------------\n\nAbove, the Completion did not satisfy the constraints given in the Instructions.\nError:\n--------------\n{error}\n--------------\n\nPlease try again. Please only respond with an answer that satisfies the constraints laid out in the Instructions:"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserAutofixing",
+      "typeVersion": 1,
+      "position": [
+        752,
+        5200
+      ],
+      "id": "d4cf2798-c5c3-45f4-bea1-e13d73926fff",
+      "name": "Auto-fixing Output Parser"
+    },
+    {
+      "parameters": {
+        "jsonSchemaExample": "{\n  \"description\":\"A detailed visual description of an image that represents a specific concept or transformation.\",\n  \"color\":\" A suggestion for the color palette that enhances the visual message, including contrasts or symbolic meanings\"\n}"
+      },
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        864,
+        5408
+      ],
+      "id": "68a2337a-903c-48cb-8fa4-314f55377d1f",
+      "name": "Structured Output Parser2"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        480,
+        5200
+      ],
+      "id": "aae98078-93d7-4c73-94d6-5ed9ea7db691",
+      "name": "Google Gemini Chat Model18",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "GFrdGoorQgj2PKlc",
+          "name": "Google AI Studio API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        688,
+        5408
+      ],
+      "id": "3a5ef768-9d29-48b3-8f30-dc076cf11754",
+      "name": "Google Gemini Chat Model19",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "GFrdGoorQgj2PKlc",
+          "name": "Google AI Studio API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp-image-generation:generateContent",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "AIzaSyDA3y18KkExiXIpG8GsJRFD-1P8bwkIQ-g"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"contents\": [\n    {\n      \"parts\": [\n        {\n          \"text\": \"An image of {{ $json.output.description }}, with a dominant color palette of {{ $json.output.color }}, in a realistic art style, with soft lighting and detailed textures.\"\n        }\n      ]\n    }\n  ],\n  \"generationConfig\": {\n    \"responseModalities\": [\"TEXT\", \"IMAGE\"]\n  }\n}\n",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "3be0d02e-c329-4811-933b-25b484c91a99",
+      "name": "Call GG inference api1",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        928,
+        4960
+      ],
+      "notesInFlow": true,
+      "typeVersion": 4.2,
+      "onError": "continueErrorOutput",
+      "notes": " "
+    },
+    {
+      "parameters": {
+        "language": "python",
+        "pythonCode": "def extract_parts(parts):    \n    for idx, part in enumerate(parts):\n        # Trường hợp là text\n        if \"text\" in part:\n            continue\n        # Trường hợp là ảnh được mã hóa base64\n        elif \"inlineData\" in part and \"data\" in part[\"inlineData\"]:      \n            return part[\"inlineData\"][\"data\"]\nfor item in _input.all():\n  parts = item.json.candidates[0].content.parts\n  item.json.data = extract_parts(parts)\n  \nreturn _input.all()"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1328,
+        4944
+      ],
+      "id": "cdea1435-095f-4dcb-ac5b-715e374e6951",
+      "name": "Get Data Image1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $('Webhook1').first().json.query.post_title }}\n{{ $('Combine into a blog').first().json.full_blog }}\n\nMô tả hình ảnh không có chữ để minh hoạ cho nội dung này và màu chủ đạo. Trả lời bằng tiếng Anh",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        592,
+        4960
+      ],
+      "id": "75936498-0670-4593-bf1f-6aaf1d8e96e5",
+      "name": "AI Image Description1"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "c8817d7f-b270-4e70-82b3-d5e04953cf20",
+              "leftValue": "={{ $json.file_url }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        368,
+        4672
+      ],
+      "id": "a1642361-6605-438b-8280-6df97135e1bf",
+      "name": "If6"
+    },
+    {
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "data",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        1552,
+        4944
+      ],
+      "id": "2637b896-d0ab-4bcd-a201-a420515378ba",
+      "name": "Convert to File1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = new Date();\n\n// Lấy ngày theo múi giờ Asia/Ho_Chi_Minh\nconst formatter = new Intl.DateTimeFormat('vi-VN', {\n  timeZone: 'Asia/Ho_Chi_Minh',\n  day: '2-digit',\n  month: '2-digit',\n  year: 'numeric',\n  hour: '2-digit',\n  minute: '2-digit',\n  second: '2-digit',\n  hour12: false,\n});\n\nconst parts = formatter.formatToParts(now);\n\n// Tạo object để dễ thao tác\nconst dateParts = {};\nparts.forEach(part => {\n  if (part.type !== 'literal') {\n    dateParts[part.type] = part.value;\n  }\n});\n\n// Ghép lại định dạng mong muốn: dd-MM-yyyy - HH:mm\nconst formatted = `${dateParts.day}/${dateParts.month}/${dateParts.year} - ${dateParts.hour}:${dateParts.minute}:${dateParts.second}`;\n\nreturn [\n  {\n    json: {\n      startTime: formatted\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2080,
+        4464
+      ],
+      "id": "d967af2e-8508-4a32-ab96-7975fa49cb46",
+      "name": "Get Start Time"
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = new Date();\n\n// Lấy ngày theo múi giờ Asia/Ho_Chi_Minh\nconst formatter = new Intl.DateTimeFormat('vi-VN', {\n  timeZone: 'Asia/Ho_Chi_Minh',\n  day: '2-digit',\n  month: '2-digit',\n  year: 'numeric',\n  hour: '2-digit',\n  minute: '2-digit',\n  second: '2-digit',\n  hour12: false,\n});\n\nconst parts = formatter.formatToParts(now);\n\n// Tạo object để dễ thao tác\nconst dateParts = {};\nparts.forEach(part => {\n  if (part.type !== 'literal') {\n    dateParts[part.type] = part.value;\n  }\n});\n\n// Ghép lại định dạng mong muốn: dd-MM-yyyy - HH:mm\nconst formatted = `${dateParts.day}/${dateParts.month}/${dateParts.year} - ${dateParts.hour}:${dateParts.minute}:${dateParts.second}`;\n\nreturn [\n  {\n    json: {\n      endTime: formatted\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2144,
+        4656
+      ],
+      "id": "e461adaf-81a5-4da0-ba10-fb024b03eee0",
+      "name": "Get End Time"
+    },
+    {
+      "parameters": {
+        "content": "### Fintech Draco App ID: 108362942201048 ",
+        "height": 340,
+        "width": 620
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1904,
+        3728
+      ],
+      "typeVersion": 1,
+      "id": "46b8e5ac-6a28-4d53-b93b-6b82efc0253a",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "post-upload-ecom",
+        "authentication": "basicAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -2416,
+        5632
+      ],
+      "id": "e0b3b5ce-f629-49f9-8225-c88a8b6c5117",
+      "name": "Webhook",
+      "webhookId": "c7f58a06-9a8a-4061-92ed-b0afde80fd4e",
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "LW1l5RaGg1spdbS4",
+          "name": "N8N Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "docType": "File",
+        "returnAll": true,
+        "options": {
+          "fields": [
+            "file_url"
+          ],
+          "filters": {
+            "customProperty": [
+              {
+                "field": "attached_to_doctype",
+                "value": "Auto Social Post AI"
+              },
+              {
+                "field": "attached_to_name",
+                "value": "={{ $json.query.doc_name }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.erpNext",
+      "typeVersion": 1,
+      "position": [
+        -2176,
+        5632
+      ],
+      "id": "c4be9490-3037-47ae-b4d5-9df55e20b921",
+      "name": "Get Post's Image Link",
+      "credentials": {
+        "erpNextApi": {
+          "id": "ctPTNIfLDkF3Ninx",
+          "name": "Ecom API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "let output = $input.all();\nlet file_url_array = [];\n\noutput.forEach(item => {\n  item.json.file_url = \"https://ecom.draerp.vn\" + item.json.file_url;\n  file_url_array.push(item.json.file_url)\n});\n\n\n\nreturn {file_url_array};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1920,
+        5632
+      ],
+      "id": "331ddfa4-7f94-4714-8275-c79920d56f7a",
+      "name": "Make complete links"
+    },
+    {
+      "parameters": {
+        "httpRequestMethod": "POST",
+        "graphApiVersion": "v22.0",
+        "node": "me",
+        "edge": "photos",
+        "sendBinaryData": true,
+        "binaryPropertyName": "data",
+        "options": {
+          "queryParameters": {
+            "parameter": [
+              {
+                "name": "published",
+                "value": "false"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.facebookGraphApi",
+      "typeVersion": 1,
+      "position": [
+        -1200,
+        5632
+      ],
+      "id": "2c4e58b9-944f-4c90-a7c8-4d4b499f44a7",
+      "name": "Upload Image First",
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "grSlGpdwzE6IalEj",
+          "name": "IG API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.file_url_array }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1456,
+        5632
+      ],
+      "id": "5ba85829-fbd6-4948-9126-f58d181a9dae",
+      "name": "Download images",
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "NZNIiTLf5blckyrU",
+          "name": "Ecom API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "attached_media",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        -688,
+        5632
+      ],
+      "id": "27f138c3-439e-404d-a0d7-2a79630b3c76",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b4096fff-bfe3-40dc-ac22-10f978c1b4bd",
+              "name": "media_fbid",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -960,
+        5632
+      ],
+      "id": "a41b9947-d2fe-459f-90c8-69ea3c1e3a2d",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "httpRequestMethod": "POST",
+        "graphApiVersion": "v22.0",
+        "node": "me",
+        "edge": "feed",
+        "options": {
+          "queryParameters": {
+            "parameter": [
+              {
+                "name": "message",
+                "value": "={{ $('Webhook').first().json.query.plain_text }}"
+              },
+              {
+                "name": "attached_media",
+                "value": "={{ $json.attached_media }}"
+              },
+              {
+                "name": "published",
+                "value": "true"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.facebookGraphApi",
+      "typeVersion": 1,
+      "position": [
+        -464,
+        5632
+      ],
+      "id": "f304fa28-a610-4103-b81c-a06f47fd5065",
+      "name": "Post to Facebook",
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "grSlGpdwzE6IalEj",
+          "name": "IG API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "file_url_array",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -1680,
+        5632
+      ],
+      "id": "f6dff7b7-70b9-44dc-be88-e5403df9b7f7",
+      "name": "Split Out"
+    },
+    {
+      "parameters": {
+        "jsCode": "// const page_id = \"100090767175317\"; // DRACO ID FB Page\n// const page_id = \"61576174864898\"; // Test ID FB Page\nconst page_id = \"636384389563558\"\nconst post_id =  $input.first().json.id; // ID bài đăng trả về từ Facebook API\n\nconst post_url = `https://www.facebook.com/${page_id}/posts/${post_id}`;\n\nreturn [{ \"post_url\": post_url }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -240,
+        5632
+      ],
+      "id": "be5722af-ed5c-4754-b1af-2570cc6ada9d",
+      "name": "Get FB Post's URL"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "docType": "Auto%20Social%20Post%20AI",
+        "documentName": "={{ $('Webhook').first().json.query.doc_name }}",
+        "properties": {
+          "customProperty": [
+            {
+              "field": "posted_in_facebook",
+              "value": "1"
+            },
+            {
+              "field": "facebook_post_link",
+              "value": "={{ $json.post_url }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.erpNext",
+      "typeVersion": 1,
+      "position": [
+        -16,
+        5632
+      ],
+      "id": "ee91999a-5a7f-4e5e-aeea-b29c7648bdb8",
+      "name": "Update FB Blog Infomations2",
+      "credentials": {
+        "erpNextApi": {
+          "id": "ctPTNIfLDkF3Ninx",
+          "name": "Ecom API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "docType": "File",
+        "returnAll": true,
+        "options": {
+          "fields": [
+            "file_url"
+          ],
+          "filters": {
+            "customProperty": [
+              {
+                "field": "attached_to_doctype",
+                "value": "Auto Social Post AI"
+              },
+              {
+                "field": "attached_to_name",
+                "value": "={{ $('Webhook1').first().json.query.doc_name }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.erpNext",
+      "typeVersion": 1,
+      "position": [
+        144,
+        4672
+      ],
+      "id": "aa58b520-997c-4d8e-b138-399408f3f7dc",
+      "name": "Get Post's Image Link1",
+      "alwaysOutputData": true,
+      "credentials": {
+        "erpNextApi": {
+          "id": "ctPTNIfLDkF3Ninx",
+          "name": "Ecom API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://ecom.draerp.vn/api/method/upload_file",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "doctype",
+              "value": "Auto Social Post AI"
+            },
+            {
+              "name": "docname",
+              "value": "={{ $('Webhook1').first().json.query.doc_name}}"
+            },
+            {
+              "name": "is_private",
+              "value": "1"
+            },
+            {
+              "name": "file_name",
+              "value": "=banner-post-{{ $('Webhook1').first().json.query.doc_name}}"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1808,
+        4944
+      ],
+      "id": "7a243be4-e6a3-4bad-b8db-a1a609f33941",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "NZNIiTLf5blckyrU",
+          "name": "Ecom API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "docType": "Auto%20Social%20Post%20AI",
+        "documentName": "={{ $('Webhook1').first().json.query.doc_name }}",
+        "properties": {
+          "customProperty": [
+            {
+              "field": "plain_text",
+              "value": "Đã xảy ra lỗi ở Model AI tạo hình ảnh. Vui lòng bấm tạo bài viết thêm 1 lần nữa"
+            },
+            {
+              "field": "start_time",
+              "value": "={{ $('Get Start Time').first().json.startTime }}"
+            },
+            {
+              "field": "end_time",
+              "value": "={{ $('Get End Time1').first().json.endTime }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.erpNext",
+      "typeVersion": 1,
+      "position": [
+        1552,
+        5168
+      ],
+      "id": "669343e6-5fb8-4c01-bbab-4439f1957a79",
+      "name": "Update FB Blog Infomations1",
+      "credentials": {
+        "erpNextApi": {
+          "id": "ctPTNIfLDkF3Ninx",
+          "name": "Ecom API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const now = new Date();\n\n// Lấy ngày theo múi giờ Asia/Ho_Chi_Minh\nconst formatter = new Intl.DateTimeFormat('vi-VN', {\n  timeZone: 'Asia/Ho_Chi_Minh',\n  day: '2-digit',\n  month: '2-digit',\n  year: 'numeric',\n  hour: '2-digit',\n  minute: '2-digit',\n  second: '2-digit',\n  hour12: false,\n});\n\nconst parts = formatter.formatToParts(now);\n\n// Tạo object để dễ thao tác\nconst dateParts = {};\nparts.forEach(part => {\n  if (part.type !== 'literal') {\n    dateParts[part.type] = part.value;\n  }\n});\n\n// Ghép lại định dạng mong muốn: dd-MM-yyyy - HH:mm\nconst formatted = `${dateParts.day}/${dateParts.month}/${dateParts.year} - ${dateParts.hour}:${dateParts.minute}:${dateParts.second}`;\n\nreturn [\n  {\n    json: {\n      endTime: formatted\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1328,
+        5168
+      ],
+      "id": "fb6b394d-bbe0-48bb-a41f-691ca44bef89",
+      "name": "Get End Time1"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -1856,
+        4992
+      ],
+      "id": "04c8b10b-cd2e-4b3f-8e6d-124b63e7e2fa",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "GFrdGoorQgj2PKlc",
+          "name": "Google AI Studio API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Blog title: {{ $('Webhook1').item.json.query.post_title }}\n\nInstructions:\n- Analyze the blog title provided.\n\n- Write a short, attractive introductory (~10 words) to start the pain section.\n- List 4-5 common pains that businesses are facing in relation to the blog title.\n    - Each pain must be written in one line with the following format:\n        1. A short headline (~5 words)\n        2. A concise description explaining why it is a real pain or what it causes (~15 words).\n    - Combine both the headline and description into one single string in each object, like this:\n      \"Headline: Description of the pain\"\n      \n- Write a short, attractive introductory (~10 words) to start the solution section (can start with \"Giải pháp từ Draco: ...\").\n- List 4-5 solutions or benefits that this ERP system can solve for each pain.\n    - Each solution must be written in one line with the following format:\n        1. A short headline (~5 words)\n        2. A concise description explaining how the ERP system solves the pain point or brings value (~15 words).\n    - Combine both the headline and description into one single string in each object, like this:\n      \"Headline: Description of the solution\"\n\n- Write a promotive attractive conclusion (~10 words) to end both sections pain and solution with a module in ERP system promotion.\n\n- Output ONLY in Vietnamese and return the following JSON object with two arrays for pains and solutions and two introductory lines:\n  ```json\n  {\n    \"pain_introductory\": \"Introduction for pain section\",\n    \"pains\": [\n      \"Pain headline: Pain description\"\n    ],\n    \"solution_introductory\": \"Giải pháp từ Draco: Introduction for solution section\",\n    \"solutions\": [\n      \"Solution headline: Solution description\"\n    ],\n    {\"conclusion\"}\n  }\n",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are a senior B2B marketing copywriter specializing in ERP software for Draco Fintech Joint Stock Company."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        -1824,
+        4832
+      ],
+      "id": "8941ec68-a41c-44af-a82b-18bd1ac23bcb",
+      "name": "Pain & Solution Generator - IG"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Lấy output thô từ node trước đó\n\nlet rawOutput =  $input.first().json.output || '';\n\n// Loại bỏ các backticks, newline, và markdown\nrawOutput = rawOutput.replace(/```json|\\n|```/g, '').trim();\n\n// Parse chuỗi JSON thành đối tượng\nlet parsedData = {};\ntry {\n  parsedData = JSON.parse(rawOutput);\n} catch (e) {\n  // Nếu có lỗi khi parse, trả về đối tượng rỗng để xử lý\n  parsedData = {\n    pains: [],\n    solutions: []\n  };\n}\n\n// Thêm prefix icon vào mỗi dòng của pains và solutions\nlet painsWithIcon = parsedData.pains.map(pain => \"❌ \" + pain);\nlet solutionsWithIcon = parsedData.solutions.map(solution => \"✅ \" + solution);\nlet conclusionWithIcon = \"👉 \" + parsedData.conclusion ;\n\n// Trả về output đúng format với icon thêm vào\nreturn [\n  {\n    json: {\n      pain_introductory: parsedData.pain_introductory,\n      pains: painsWithIcon,\n      solution_introductory: parsedData.solution_introductory,\n      solutions: solutionsWithIcon,\n      conclusion: conclusionWithIcon\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1440,
+        4832
+      ],
+      "id": "2e22d923-a771-440e-87bb-4280c23043da",
+      "name": "Extract All Blog Parts IG"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Lấy dữ liệu từ input JSON (một bài viết ví dụ)\nlet blogData = $json;\n\n// Lấy phần introductory, pains, solutions và conclusion\nlet painIntro = blogData.pain_introductory || '';\nlet pains = blogData.pains || [];\nlet solutionIntro = blogData.solution_introductory || '';\nlet solutions = blogData.solutions || [];\nlet conclusion = blogData.conclusion || '';\nlet cta =  $('Webhook1').first().json.query.custom_cta || `\nTrải nghiệm miễn phí và nhận hỗ trợ 1-1 ngay hôm nay!\n📌 Thông tin 9 gói basic miễn phí: https://draerp.vn/9-goi-draerp-basic/\n📌 Thông tin 10 gói doanh nghiệp miễn phí: https://draerp.vn/10-goi-draerp-doanh-nghiep/\n📌 Đăng ký dùng thử miễn phí: https://bit.ly/dang-ky-su-dung-mien-phi\n-----------------------------------\n🌏 Email: business@draco.biz\n📞 SĐT: +84 33 885 5353\n🌏 Website: draerp.vn\n🌏 Instagram: @fintechdraco | LinkedIn: fintech draco corporation\n🌏 TikTok: @fintechdracocorporation | YouTube: @fintechdracodraerp\n`\n\n// Gộp các phần vào một bài blog hoàn chỉnh\nlet blogContent = `${painIntro}\\n`;\n\npains.forEach(pain => {\n  blogContent += `${pain}\\n`;  // Thêm từng dòng pain\n});\n\nblogContent += `${solutionIntro}\\n`;\n\nsolutions.forEach(solution => {\n  blogContent += `${solution}\\n`;  // Thêm từng dòng solution\n});\n\nblogContent += `${conclusion}\\n`;// Thêm phần kết luận\n\nblogContent += `${cta} \\n`\n\n// Trả về bài blog hoàn chỉnh dưới dạng JSON\nreturn [\n  {\n    json: {\n      full_blog: blogContent.trim()  // Loại bỏ khoảng trắng dư thừa\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1184,
+        4832
+      ],
+      "id": "f69b29a7-5793-40f6-a4c6-81539bf68ef9",
+      "name": "Combine into a blog IG"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "post-upload-IG-ecom",
+        "authentication": "basicAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -2432,
+        6016
+      ],
+      "id": "3123c9db-d365-419e-9ce6-c6a6fe96236e",
+      "name": "Webhook2",
+      "webhookId": "c7f58a06-9a8a-4061-92ed-b0afde80fd4e",
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "LW1l5RaGg1spdbS4",
+          "name": "N8N Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "docType": "File",
+        "returnAll": true,
+        "options": {
+          "fields": [
+            "file_url"
+          ],
+          "filters": {
+            "customProperty": [
+              {
+                "field": "attached_to_doctype",
+                "value": "Auto Social Post AI"
+              },
+              {
+                "field": "attached_to_name",
+                "value": "={{ $json.query.doc_name }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.erpNext",
+      "typeVersion": 1,
+      "position": [
+        -2192,
+        6016
+      ],
+      "id": "e3a4d36a-2bc2-4eab-abae-e545e53f0eaf",
+      "name": "Get Post's Image Link2",
+      "credentials": {
+        "erpNextApi": {
+          "id": "ctPTNIfLDkF3Ninx",
+          "name": "Ecom API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "let output = $input.all();\nlet file_url_array = [];\n\noutput.forEach(item => {\n  item.json.file_url = \"https://ecom.draerp.vn\" + item.json.file_url;\n  file_url_array.push(item.json.file_url)\n});\n\n\n\nreturn {file_url_array};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1920,
+        6016
+      ],
+      "id": "92b14f9d-f311-4cf1-aba4-4f3567000dff",
+      "name": "Make complete links1"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.file_url_array }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1472,
+        6016
+      ],
+      "id": "b0157bff-7371-4bce-85d1-7b6e03a3c27c",
+      "name": "Download images1",
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "NZNIiTLf5blckyrU",
+          "name": "Ecom API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldToSplitOut": "file_url_array",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1,
+      "position": [
+        -1680,
+        6016
+      ],
+      "id": "5ed59c37-90ac-4183-9fad-6c9595d20e4e",
+      "name": "Split Out1"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://devai.drabank.com/wp-json/wp/v2/media",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "wordpressApi",
+        "sendHeaders": true,
+        "specifyHeaders": "json",
+        "jsonHeaders": "={\n  \"Content-Type\": \"image/jpeg\",\n  \"Accept\": \"application/json\",\n  \"Authorization\": \"Basic dGVhbWRldjpYckJoIHg3Y2IgajZyayB1TWJOIGVHa2sgRFFZUQ==\",\n  \"Content-Disposition\": \"attachment; filename=banner-{{ $('Get Post\\'s Image Link2').first().json.file_url }}.jpg\"\n}\n",
+        "sendBody": true,
+        "contentType": "binaryData",
+        "inputDataFieldName": "data",
+        "options": {}
+      },
+      "id": "839d1f73-3161-4f5f-9e18-184028671e4d",
+      "name": "Upload image to WP media",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        -1200,
+        6016
+      ],
+      "typeVersion": 4.2,
+      "credentials": {
+        "wordpressApi": {
+          "id": "6iFNHcOVlD9SjToy",
+          "name": "Test Wordpress Account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8a4260ba-3bde-4444-8f42-8a8abd51ff0c",
+              "name": "ImageURL",
+              "type": "string",
+              "value": "={{ $json.guid.raw }}"
+            },
+            {
+              "id": "1953ae03-6a86-4847-8686-5a928637be1d",
+              "name": "Caption",
+              "type": "string",
+              "value": "={{ $('Webhook2').first().json.query.plain_text }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "39280d97-24fe-426d-a19a-233b7f0245ca",
+      "name": "5. Prepare Data for Instagram API1",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        -864,
+        6016
+      ],
+      "typeVersion": 3.4
+    },
+    {
+      "parameters": {
+        "httpRequestMethod": "POST",
+        "graphApiVersion": "v22.0",
+        "node": "17841429404862240",
+        "edge": "media",
+        "options": {
+          "queryParameters": {
+            "parameter": [
+              {
+                "name": "caption",
+                "value": "={{ $json.Caption }}"
+              },
+              {
+                "name": "image_url",
+                "value": "={{ $json.ImageURL }}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "db853c8e-10e0-427e-8e4a-4ca2ecaddb05",
+      "name": "6a. Create Instagram Media Container1",
+      "type": "n8n-nodes-base.facebookGraphApi",
+      "position": [
+        -544,
+        6016
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "grSlGpdwzE6IalEj",
+          "name": "IG API"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "a573698e-98f2-4a21-8225-b2c3c88aaf24",
+      "name": "6b. Wait for Container Processing1",
+      "type": "n8n-nodes-base.wait",
+      "position": [
+        -1616,
+        6448
+      ],
+      "webhookId": "1b14c8bf-151a-4054-8215-093dd5b6cbcc",
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "httpRequestMethod": "POST",
+        "graphApiVersion": "v22.0",
+        "node": "17841429404862240",
+        "edge": "media_publish",
+        "options": {
+          "queryParameters": {
+            "parameter": [
+              {
+                "name": "creation_id",
+                "value": "={{ $json.id }}"
+              }
+            ]
+          }
+        }
+      },
+      "id": "658ce8bb-746b-436d-8091-9073083f9efa",
+      "name": "6c. Publish Post to Instagram1",
+      "type": "n8n-nodes-base.facebookGraphApi",
+      "position": [
+        -1376,
+        6448
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "grSlGpdwzE6IalEj",
+          "name": "IG API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "graphApiVersion": "v22.0",
+        "node": "17841429404862240",
+        "edge": "media",
+        "options": {
+          "fields": {
+            "field": [
+              {
+                "name": "permalink"
+              }
+            ]
+          }
+        }
+      },
+      "id": "090c3a86-66cf-46f4-9b70-7df11af7f0a0",
+      "name": "Facebook Graph API",
+      "type": "n8n-nodes-base.facebookGraphApi",
+      "typeVersion": 1,
+      "position": [
+        -1136,
+        6448
+      ],
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "grSlGpdwzE6IalEj",
+          "name": "IG API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const publishedId = $('6c. Publish Post to Instagram1').first().json.id;\n\nfor (const item of $input.all()) {\n  const mediaArray = item.json.data || [];\n\n  for (const data of mediaArray) {\n    if (data.id === publishedId) {\n      item.json.post_url = data.permalink;\n      break;\n    }\n  }\n}\n\nreturn $input.all();\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -848,
+        6448
+      ],
+      "id": "019ed209-f772-4c90-88d7-216f7da8a2a9",
+      "name": "Code1"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "docType": "Auto%20Social%20Post%20AI",
+        "documentName": "={{ $('Webhook2').first().json.query.doc_name }}",
+        "properties": {
+          "customProperty": [
+            {
+              "field": "posted_in_instagram",
+              "value": "1"
+            },
+            {
+              "field": "instagram_post_link",
+              "value": "={{ $json.post_url }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.erpNext",
+      "typeVersion": 1,
+      "position": [
+        -544,
+        6448
+      ],
+      "id": "1ce52f4d-4ebc-4cbb-bcec-9b1d10e16fb3",
+      "name": "Update IG Blog Infomations4",
+      "credentials": {
+        "erpNextApi": {
+          "id": "ctPTNIfLDkF3Ninx",
+          "name": "Ecom API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "post-upload-linkedin-ecom",
+        "authentication": "basicAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -2416,
+        6800
+      ],
+      "id": "96f11d49-6c70-412b-98e8-cf0260dce9d6",
+      "name": "Webhook3",
+      "webhookId": "c7f58a06-9a8a-4061-92ed-b0afde80fd4e",
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "LW1l5RaGg1spdbS4",
+          "name": "N8N Auth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "getAll",
+        "docType": "File",
+        "returnAll": true,
+        "options": {
+          "fields": [
+            "file_url"
+          ],
+          "filters": {
+            "customProperty": [
+              {
+                "field": "attached_to_doctype",
+                "value": "Auto Social Post AI"
+              },
+              {
+                "field": "attached_to_name",
+                "value": "={{ $json.query.doc_name }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.erpNext",
+      "typeVersion": 1,
+      "position": [
+        -2176,
+        6800
+      ],
+      "id": "a05673b5-1100-4512-b328-b855ed62d025",
+      "name": "Get Post's Image Link3",
+      "credentials": {
+        "erpNextApi": {
+          "id": "ctPTNIfLDkF3Ninx",
+          "name": "Ecom API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "let output = $input.all();\n// let file_url_array = [];\n\noutput.forEach(item => {\n  item.json.file_url = \"https://ecom.draerp.vn\" + item.json.file_url;\n  file_url = item.json.file_url\n});\n\n\n\nreturn {file_url};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1920,
+        6800
+      ],
+      "id": "6abce69a-9734-41a9-8623-a63bbcdb3b95",
+      "name": "Make complete links2"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.file_url }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        -1664,
+        6800
+      ],
+      "id": "f6532479-0ff2-4c9b-a4fb-a7fc2ef4609e",
+      "name": "Download images2",
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "NZNIiTLf5blckyrU",
+          "name": "Ecom API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -1024,
+        4640
+      ],
+      "id": "e2b39142-d5a1-423b-9441-2ba6b7a1f1cf",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "postAs": "organization",
+        "organization": "107128127",
+        "text": "={{ $('Webhook3').first().json.query.plain_text }}",
+        "shareMediaCategory": "IMAGE",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.linkedIn",
+      "typeVersion": 1,
+      "position": [
+        -1440,
+        6800
+      ],
+      "id": "f79e86d0-6a34-498e-9fff-c5b414bc6142",
+      "name": "Create a post",
+      "credentials": {
+        "linkedInOAuth2Api": {
+          "id": "4Hj6FOjyQGAWcdEG",
+          "name": "LinkedIn account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-lite-001",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -1888,
+        5392
+      ],
+      "id": "81a0eaf1-ff99-49db-8379-9516b2c762db",
+      "name": "Google Gemini Chat Model3",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "GFrdGoorQgj2PKlc",
+          "name": "Google AI Studio API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Blog title: {{ $('Webhook1').item.json.query.post_title }}\n\nInstructions:\n- Analyze the blog title provided.\n\n- Write a short, attractive introductory (~10 words) to start the pain section.\n- List 4-5 common pains that businesses are facing in relation to the blog title.\n    - Each pain must be written in one line with the following format:\n        1. A short headline (~5 words)\n        2. A concise description explaining why it is a real pain or what it causes (~10 words).\n    - Combine both the headline and description into one single string in each object, like this:\n      \"Headline: Description of the pain\"\n      \n- Write a short, attractive introductory (~10 words) to start the solution section (can start with \"Giải pháp từ Draco: ...\").\n- List 4-5 solutions or benefits that this ERP system can solve for each pain.\n    - Each solution must be written in one line with the following format:\n        1. A short headline (~5 words)\n        2. A concise description explaining how the ERP system solves the pain point or brings value (~10 words).\n    - Combine both the headline and description into one single string in each object, like this:\n      \"Headline: Description of the solution\"\n\n- Write a promotive attractive conclusion (~10 words) to end both sections pain and solution with a module in ERP system promotion.\n\n- Output ONLY in Vietnamese and return the following JSON object with two arrays for pains and solutions and two introductory lines:\n  ```json\n  {\n    \"pain_introductory\": \"Introduction for pain section\",\n    \"pains\": [\n      \"Pain headline: Pain description\"\n    ],\n    \"solution_introductory\": \"Giải pháp từ Draco: Introduction for solution section\",\n    \"solutions\": [\n      \"Solution headline: Solution description\"\n    ],\n    {\"conclusion\"}\n  }\n",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are a senior B2B marketing copywriter specializing in ERP software for Draco Fintech Joint Stock Company."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        -1824,
+        5232
+      ],
+      "id": "1bb0b86d-350d-49f0-9808-ff454b2f95ea",
+      "name": "Pain & Solution Generator - LI"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Lấy output thô từ node trước đó\n\nlet rawOutput =  $input.first().json.output || '';\n\n// Loại bỏ các backticks, newline, và markdown\nrawOutput = rawOutput.replace(/```json|\\n|```/g, '').trim();\n\n// Parse chuỗi JSON thành đối tượng\nlet parsedData = {};\ntry {\n  parsedData = JSON.parse(rawOutput);\n} catch (e) {\n  // Nếu có lỗi khi parse, trả về đối tượng rỗng để xử lý\n  parsedData = {\n    pains: [],\n    solutions: []\n  };\n}\n\n// Thêm prefix icon vào mỗi dòng của pains và solutions\nlet painsWithIcon = parsedData.pains.map(pain => \"❌ \" + pain);\nlet solutionsWithIcon = parsedData.solutions.map(solution => \"✅ \" + solution);\nlet conclusionWithIcon = \"👉 \" + parsedData.conclusion ;\n\n// Trả về output đúng format với icon thêm vào\nreturn [\n  {\n    json: {\n      pain_introductory: parsedData.pain_introductory,\n      pains: painsWithIcon,\n      solution_introductory: parsedData.solution_introductory,\n      solutions: solutionsWithIcon,\n      conclusion: conclusionWithIcon\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1440,
+        5232
+      ],
+      "id": "4fb6a16b-fede-4b50-b2a0-bf2d579664f5",
+      "name": "Extract All Blog Parts LI"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Lấy dữ liệu từ input JSON (một bài viết ví dụ)\nlet blogData = $json;\n\n// Lấy phần introductory, pains, solutions và conclusion\nlet painIntro = blogData.pain_introductory || '';\nlet pains = blogData.pains || [];\nlet solutionIntro = blogData.solution_introductory || '';\nlet solutions = blogData.solutions || [];\nlet conclusion = blogData.conclusion || '';\nlet cta =  $('Webhook1').first().json.query.custom_cta || `\nTrải nghiệm miễn phí và nhận hỗ trợ 1-1 ngay hôm nay!\n📌 Thông tin 9 gói basic miễn phí: https://draerp.vn/9-goi-draerp-basic/\n📌 Thông tin 10 gói doanh nghiệp miễn phí: https://draerp.vn/10-goi-draerp-doanh-nghiep/\n📌 Đăng ký dùng thử miễn phí: https://bit.ly/dang-ky-su-dung-mien-phi\n-----------------------------------\n🌏 Email: business@draco.biz\n📞 SĐT: +84 33 885 5353\n🌏 Website: draerp.vn\n🌏 Instagram: @fintechdraco | LinkedIn: fintech draco corporation\n🌏 TikTok: @fintechdracocorporation | YouTube: @fintechdracodraerp\n`\n\n// Gộp các phần vào một bài blog hoàn chỉnh\nlet blogContent = `${painIntro}\\n`;\n\npains.forEach(pain => {\n  blogContent += `${pain}\\n`;  // Thêm từng dòng pain\n});\n\nblogContent += `${solutionIntro}\\n`;\n\nsolutions.forEach(solution => {\n  blogContent += `${solution}\\n`;  // Thêm từng dòng solution\n});\n\nblogContent += `${conclusion}\\n`;// Thêm phần kết luận\n\nblogContent += `${cta} \\n`\n\n// Trả về bài blog hoàn chỉnh dưới dạng JSON\nreturn [\n  {\n    json: {\n      full_blog: blogContent.trim()  // Loại bỏ khoảng trắng dư thừa\n    }\n  }\n];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1184,
+        5232
+      ],
+      "id": "93940c56-d59b-497c-8cb1-28a8383a2c22",
+      "name": "Combine into a blog LI"
+    },
+    {
+      "parameters": {
+        "jsCode": "\nconst post_id =  $input.first().json.urn; // ID bài đăng trả về từ Linkedin API\n\nconst post_url = `https://www.linkedin.com/feed/update/${post_id}`;\n\nreturn [{ \"post_url\": post_url }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1168,
+        6800
+      ],
+      "id": "ced767b6-ab76-40e9-a986-be35d10b7196",
+      "name": "Get FB Post's URL2"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "docType": "Auto%20Social%20Post%20AI",
+        "documentName": "={{ $('Webhook3').first().json.query.doc_name }}",
+        "properties": {
+          "customProperty": [
+            {
+              "field": "posted_in_linkedin",
+              "value": "1"
+            },
+            {
+              "field": "linkedin_post_link",
+              "value": "={{ $json.post_url }}"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.erpNext",
+      "typeVersion": 1,
+      "position": [
+        -960,
+        6800
+      ],
+      "id": "cc43d8b9-6205-4d19-b1e2-c76175b2ee60",
+      "name": "Update FB Blog Infomations4",
+      "credentials": {
+        "erpNextApi": {
+          "id": "ctPTNIfLDkF3Ninx",
+          "name": "Ecom API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "id"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        -2416,
+        6448
+      ],
+      "id": "4e6165fe-bf8a-419a-9178-dfa9384c19b5",
+      "name": "Aggregate1"
+    },
+    {
+      "parameters": {
+        "language": "python",
+        "pythonCode": "# Loop over input items and add a new field called 'myNewField' to the JSON of each one\nfor item in _input.all():\n  item.json.id = \", \".join(item.json.id)\nreturn _input.all()"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -2192,
+        6448
+      ],
+      "id": "710f2aae-b097-4b14-9c88-eb256f3f0fdc",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "httpRequestMethod": "POST",
+        "graphApiVersion": "v22.0",
+        "node": "17841429404862240",
+        "edge": "media",
+        "options": {
+          "queryParameters": {
+            "parameter": [
+              {
+                "name": "caption",
+                "value": "={{ $('5. Prepare Data for Instagram API1').first().json.Caption }}"
+              },
+              {
+                "name": "children",
+                "value": "={{ $json.id }}"
+              },
+              {
+                "name": "media_type",
+                "value": "CAROUSEL"
+              }
+            ]
+          }
+        }
+      },
+      "id": "7dff51a1-64e0-4855-8893-20cd008aeb62",
+      "name": "Create Instagram Media Carousels Container",
+      "type": "n8n-nodes-base.facebookGraphApi",
+      "position": [
+        -1856,
+        6192
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "facebookGraphApi": {
+          "id": "grSlGpdwzE6IalEj",
+          "name": "IG API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 2
+          },
+          "conditions": [
+            {
+              "id": "1a1ea4a8-a93a-4b44-9e54-4f3f264f0b57",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": ",",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        -2032,
+        6432
+      ],
+      "id": "7d2174c2-e573-4e0f-91f0-8fb2f7478f3b",
+      "name": "If1"
+    }
+  ],
+  "pinData": {
+    "Webhook1": [
+      {
+        "json": {
+          "headers": {
+            "connection": "upgrade",
+            "host": "n8n.drabank.com",
+            "x-real-ip": "172.68.164.167",
+            "x-forwarded-for": "103.104.122.59, 172.68.164.167",
+            "x-forwarded-proto": "https",
+            "content-length": "0",
+            "user-agent": "python-requests/2.32.3",
+            "accept-encoding": "gzip, br",
+            "content-type": "application/json",
+            "authorization": "Basic VGVhbURldjpEcmFjb0AxMjM=",
+            "cf-ray": "9847f1520821f8c8-SIN",
+            "accept": "*/*",
+            "cdn-loop": "cloudflare; loops=1",
+            "cf-connecting-ip": "103.104.122.59",
+            "cf-ipcountry": "VN",
+            "cf-visitor": "{\"scheme\":\"https\"}"
+          },
+          "params": {},
+          "query": {
+            "doc_name": "AUTO-POST-15092025-000001",
+            "post_title": "5 lợi ích của hệ thống ERP trong ngành F&B",
+            "custom_description": "",
+            "custom_cta": "",
+            "custom_hashtags": "",
+            "number_of_headings": "3",
+            "related_industries": ""
+          },
+          "body": {},
+          "webhookUrl": "https://n8n.drabank.com/webhook/post-gen-ecom",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
+  "connections": {
+    "Call hugginface inference api1": {
+      "main": [
+        [],
+        []
+      ]
+    },
+    "Webhook1": {
+      "main": [
+        [
+          {
+            "node": "Get Start Time",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Blog Generator",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Pain & Solution Generator",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pain & Solution Generator": {
+      "main": [
+        [
+          {
+            "node": "Extract All Blog Parts",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract All Blog Parts": {
+      "main": [
+        [
+          {
+            "node": "Combine into a blog",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine into a blog": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model20": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "FB Hashtags Generator1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "FB Hashtags Generator1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Set Hashtags1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "FB Hashtags Generator1": {
+      "main": [
+        [
+          {
+            "node": "Cleare Hashtags Markdown1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cleare Hashtags Markdown1": {
+      "main": [
+        [
+          {
+            "node": "Set Hashtags1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model17": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Banner Text Generator",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser5": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Banner Text Generator",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "APITemplate Call": {
+      "main": [
+        [
+          {
+            "node": "Download image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Banner Text Generator": {
+      "main": [
+        [
+          {
+            "node": "APITemplate Call",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download image": {
+      "main": [
+        []
+      ]
+    },
+    "Auto-fixing Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "AI Image Description1",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Structured Output Parser2": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Auto-fixing Output Parser",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model18": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Image Description1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model19": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Auto-fixing Output Parser",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call GG inference api1": {
+      "main": [
+        [
+          {
+            "node": "Get Data Image1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get End Time1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Data Image1": {
+      "main": [
+        [
+          {
+            "node": "Convert to File1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Image Description1": {
+      "main": [
+        [
+          {
+            "node": "Call GG inference api1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If6": {
+      "main": [
+        [
+          {
+            "node": "Get End Time",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Image Description1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert to File1": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Hashtags1": {
+      "main": [
+        [
+          {
+            "node": "Get Post's Image Link1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Start Time": {
+      "main": [
+        [
+          {
+            "node": "Pain & Solution Generator",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Pain & Solution Generator - IG",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Pain & Solution Generator - LI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get End Time": {
+      "main": [
+        [
+          {
+            "node": "Update FB Blog Infomations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get Post's Image Link",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Post's Image Link": {
+      "main": [
+        [
+          {
+            "node": "Make complete links",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Make complete links": {
+      "main": [
+        [
+          {
+            "node": "Split Out",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download images": {
+      "main": [
+        [
+          {
+            "node": "Upload Image First",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Upload Image First": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Post to Facebook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out": {
+      "main": [
+        [
+          {
+            "node": "Download images",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Post to Facebook": {
+      "main": [
+        [
+          {
+            "node": "Get FB Post's URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get FB Post's URL": {
+      "main": [
+        [
+          {
+            "node": "Update FB Blog Infomations2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Post's Image Link1": {
+      "main": [
+        [
+          {
+            "node": "If6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update FB Blog Infomations": {
+      "main": [
+        []
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Get End Time",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get End Time1": {
+      "main": [
+        [
+          {
+            "node": "Update FB Blog Infomations1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Pain & Solution Generator - IG",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pain & Solution Generator - IG": {
+      "main": [
+        [
+          {
+            "node": "Extract All Blog Parts IG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract All Blog Parts IG": {
+      "main": [
+        [
+          {
+            "node": "Combine into a blog IG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine into a blog IG": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Webhook2": {
+      "main": [
+        [
+          {
+            "node": "Get Post's Image Link2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Post's Image Link2": {
+      "main": [
+        [
+          {
+            "node": "Make complete links1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Make complete links1": {
+      "main": [
+        [
+          {
+            "node": "Split Out1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download images1": {
+      "main": [
+        [
+          {
+            "node": "Upload image to WP media",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Out1": {
+      "main": [
+        [
+          {
+            "node": "Download images1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload image to WP media": {
+      "main": [
+        [
+          {
+            "node": "5. Prepare Data for Instagram API1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "5. Prepare Data for Instagram API1": {
+      "main": [
+        [
+          {
+            "node": "6a. Create Instagram Media Container1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "6a. Create Instagram Media Container1": {
+      "main": [
+        [
+          {
+            "node": "Aggregate1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "6b. Wait for Container Processing1": {
+      "main": [
+        [
+          {
+            "node": "6c. Publish Post to Instagram1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "6c. Publish Post to Instagram1": {
+      "main": [
+        [
+          {
+            "node": "Facebook Graph API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Facebook Graph API": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "Update IG Blog Infomations4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook3": {
+      "main": [
+        [
+          {
+            "node": "Get Post's Image Link3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Post's Image Link3": {
+      "main": [
+        [
+          {
+            "node": "Make complete links2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Make complete links2": {
+      "main": [
+        [
+          {
+            "node": "Download images2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download images2": {
+      "main": [
+        [
+          {
+            "node": "Create a post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model3": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Pain & Solution Generator - LI",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Pain & Solution Generator - LI": {
+      "main": [
+        [
+          {
+            "node": "Extract All Blog Parts LI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract All Blog Parts LI": {
+      "main": [
+        [
+          {
+            "node": "Combine into a blog LI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Combine into a blog LI": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Create a post": {
+      "main": [
+        [
+          {
+            "node": "Get FB Post's URL2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get FB Post's URL2": {
+      "main": [
+        [
+          {
+            "node": "Update FB Blog Infomations4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate1": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Instagram Media Carousels Container": {
+      "main": [
+        [
+          {
+            "node": "6b. Wait for Container Processing1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "Create Instagram Media Carousels Container",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "6b. Wait for Container Processing1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "435db95d-6e05-4bba-81e0-8bcd855d50a0",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "cd081da085aa8d872dd1fee1d082c26d865f942819806cdd5c158123eee5eee0"
+  },
+  "id": "3Cle43vbFFl1aWfu",
+  "tags": []
+}
